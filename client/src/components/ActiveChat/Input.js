@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { FormControl, FilledInput } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { connect } from 'react-redux';
-import { postMessage } from '../../store/utils/thunkCreators';
+import {
+  postMessage,
+  fetchConversations,
+} from '../../store/utils/thunkCreators';
 
 const useStyles = makeStyles(() => ({
   root: {
@@ -20,7 +23,8 @@ const useStyles = makeStyles(() => ({
 const Input = props => {
   const classes = useStyles();
   const [text, setText] = useState('');
-  const { postMessage, otherUser, conversationId, user, onChange } = props;
+  const { postMessage, otherUser, conversationId, user, fetchConversations } =
+    props;
 
   const handleChange = event => {
     setText(event.target.value);
@@ -35,11 +39,13 @@ const Input = props => {
       conversationId,
       sender: conversationId ? null : user,
     };
-    // wait nessage to be posted before update parent component
+    // Editor: Jaehyun Jun
+    // Added fetch Conversation thunk:
+    // re-fetch the users on the chat-list to display
+    // the most recent person the user talked to
     postMessage(reqBody).then(() => {
-      onChange(); // update parent component after postMessage dispatch
+      fetchConversations();
     });
-
     setText('');
   };
 
@@ -59,14 +65,16 @@ const Input = props => {
   );
 };
 
-/**
- * Editor: Jaehyun Jun
- * Updated postMessage dispatch to be a async function
- */
+// Editor: Jaehyun Jun
+// Update postMessage thunk to async function to fetch the chat list after message post
+// Added fetchConversations thunk to fetch the chat list on submit of message
 const mapDispatchToProps = dispatch => {
   return {
     postMessage: async message => {
       await dispatch(postMessage(message));
+    },
+    fetchConversations: () => {
+      dispatch(fetchConversations());
     },
   };
 };
