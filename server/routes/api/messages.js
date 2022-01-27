@@ -1,9 +1,9 @@
-const router = require("express").Router();
-const { Conversation, Message } = require("../../db/models");
-const onlineUsers = require("../../onlineUsers");
+const router = require('express').Router();
+const { Conversation, Message } = require('../../db/models');
+const onlineUsers = require('../../onlineUsers');
 
 // expects {recipientId, text, conversationId } in body (conversationId will be null if no conversation exists yet)
-router.post("/", async (req, res, next) => {
+router.post('/', async (req, res, next) => {
   try {
     if (!req.user) {
       return res.sendStatus(401);
@@ -14,6 +14,16 @@ router.post("/", async (req, res, next) => {
     // if we already know conversation id, we can save time and just add it to message and return
     if (conversationId) {
       const message = await Message.create({ senderId, text, conversationId });
+
+      // Editor: Jaehyun Jun
+      // Update updatedAt column manually
+      // since adding message to the conversation does not update updatedAt field
+      const convo = await Conversation.findOne({
+        where: { id: conversationId },
+      });
+      convo.changed('updatedAt', true);
+      await convo.update({ updatedAt: message.createdAt });
+
       return res.json({ message, sender });
     }
     // if we don't have conversation id, find a conversation to make sure it doesn't already exist
@@ -32,6 +42,7 @@ router.post("/", async (req, res, next) => {
         sender.online = true;
       }
     }
+
     const message = await Message.create({
       senderId,
       text,

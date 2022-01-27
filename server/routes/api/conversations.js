@@ -1,16 +1,22 @@
-const router = require("express").Router();
-const { User, Conversation, Message } = require("../../db/models");
-const { Op } = require("sequelize");
-const onlineUsers = require("../../onlineUsers");
+const router = require('express').Router();
+const { User, Conversation, Message } = require('../../db/models');
+const { Op } = require('sequelize');
+const onlineUsers = require('../../onlineUsers');
 
 // get all conversations for a user, include latest message text for preview, and all messages
 // include other user model so we have info on username/profile pic (don't include current user info)
-router.get("/", async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     if (!req.user) {
       return res.sendStatus(401);
     }
     const userId = req.user.id;
+
+    // Editor: Jaehyun jun
+    // Order by updatedAt for conversations in descending order
+    // to display the most current person the user talked to.
+    // Order by createdAt for messages in ascending order
+    // to diplay the most current message in the bottom
     const conversations = await Conversation.findAll({
       where: {
         [Op.or]: {
@@ -18,30 +24,33 @@ router.get("/", async (req, res, next) => {
           user2Id: userId,
         },
       },
-      attributes: ["id"],
-      order: [[Message, "createdAt", "DESC"]],
+      attributes: ['id', 'updatedAt'],
+      order: [
+        ['updatedAt', 'DESC'],
+        [Message, 'createdAt', 'ASC'],
+      ],
       include: [
-        { model: Message, order: ["createdAt", "DESC"] },
+        { model: Message },
         {
           model: User,
-          as: "user1",
+          as: 'user1',
           where: {
             id: {
               [Op.not]: userId,
             },
           },
-          attributes: ["id", "username", "photoUrl"],
+          attributes: ['id', 'username', 'photoUrl'],
           required: false,
         },
         {
           model: User,
-          as: "user2",
+          as: 'user2',
           where: {
             id: {
               [Op.not]: userId,
             },
           },
-          attributes: ["id", "username", "photoUrl"],
+          attributes: ['id', 'username', 'photoUrl'],
           required: false,
         },
       ],
@@ -68,7 +77,8 @@ router.get("/", async (req, res, next) => {
       }
 
       // set properties for notification count and latest message preview
-      convoJSON.latestMessageText = convoJSON.messages[0].text;
+      convoJSON.latestMessageText =
+        convoJSON.messages[convoJSON.messages.length - 1].text;
       conversations[i] = convoJSON;
     }
 
