@@ -11,6 +11,12 @@ router.get('/', async (req, res, next) => {
       return res.sendStatus(401);
     }
     const userId = req.user.id;
+
+    // Editor: Jaehyun jun
+    // Order by updatedAt for conversations in descending order
+    // to display the most current person the user talked to.
+    // Order by createdAt for messages in ascending order
+    // to diplay the most current message in the bottom
     const conversations = await Conversation.findAll({
       where: {
         [Op.or]: {
@@ -18,10 +24,13 @@ router.get('/', async (req, res, next) => {
           user2Id: userId,
         },
       },
-      attributes: ['id'],
-      order: [[Message, 'createdAt', 'ASC']],
+      attributes: ['id', 'updatedAt'],
+      order: [
+        ['updatedAt', 'DESC'],
+        [Message, 'createdAt', 'ASC'],
+      ],
       include: [
-        { model: Message, order: ['createdAt', 'ASC'] },
+        { model: Message },
         {
           model: User,
           as: 'user1',
