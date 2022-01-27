@@ -2,10 +2,7 @@ import React, { useState } from 'react';
 import { FormControl, FilledInput } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { connect } from 'react-redux';
-import {
-  postMessage,
-  fetchConversations,
-} from '../../store/utils/thunkCreators';
+import { postMessage } from '../../store/utils/thunkCreators';
 
 const useStyles = makeStyles(() => ({
   root: {
@@ -39,13 +36,7 @@ const Input = props => {
       conversationId,
       sender: conversationId ? null : user,
     };
-    // Editor: Jaehyun Jun
-    // Added fetch Conversation thunk:
-    // re-fetch the users on the chat-list to display
-    // the most recent person the user talked to
-    postMessage(reqBody).then(() => {
-      fetchConversations();
-    });
+    postMessage(reqBody);
     setText('');
   };
 
@@ -65,16 +56,10 @@ const Input = props => {
   );
 };
 
-// Editor: Jaehyun Jun
-// Update postMessage thunk to async function to fetch the chat list after message post
-// Added fetchConversations thunk to fetch the chat list on submit of message
 const mapDispatchToProps = dispatch => {
   return {
     postMessage: async message => {
       await dispatch(postMessage(message));
-    },
-    fetchConversations: () => {
-      dispatch(fetchConversations());
     },
   };
 };
