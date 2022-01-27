@@ -1,13 +1,5 @@
 export const addMessageToStore = (state, payload) => {
   const { message, sender } = payload;
-
-  // Editor: Jaehyun Jun
-  // redux compares the memory of the two objects to simply check whether
-  // the previous object is the same as the new object.
-  // Accordingly, when the attributes of the previous object are changed inside the reducer,
-  // both "new state" and "old state" refer to the same object.
-  // Therefore, redux thinks nothing has changed, So I made the deep copy of the state to return.
-  const newState = state.map(convo => Object.assign({}, convo));
   // if sender isn't null, that means the message needs to be put in a brand new convo
   if (sender !== null) {
     const newConvo = {
@@ -16,14 +8,15 @@ export const addMessageToStore = (state, payload) => {
       messages: [message],
     };
     newConvo.latestMessageText = message.text;
-    return [newConvo, ...newState];
+    return [newConvo, ...state];
   }
 
-  return newState.map(convo => {
+  return state.map(convo => {
     if (convo.id === message.conversationId) {
-      convo.messages.push(message);
-      convo.latestMessageText = message.text;
-      return convo;
+      const convoCopy = { ...convo };
+      convoCopy.messages.push(message);
+      convoCopy.latestMessageText = message.text;
+      return convoCopy;
     } else {
       return convo;
     }
@@ -75,19 +68,13 @@ export const addSearchedUsersToStore = (state, users) => {
 };
 
 export const addNewConvoToStore = (state, recipientId, message) => {
-  // Editor: Jaehyun Jun
-  // redux compares the memory of the two objects to simply check whether
-  // the previous object is the same as the new object.
-  // Accordingly, when the attributes of the previous object are changed inside the reducer,
-  // both "new state" and "old state" refer to the same object.
-  // Therefore, redux thinks nothing has changed, So I made the deep copy of the state to return.
-  const newState = state.map(convo => Object.assign({}, convo));
-  return newState.map(convo => {
+  return state.map(convo => {
     if (convo.otherUser.id === recipientId) {
-      convo.id = message.conversationId;
-      convo.messages.push(message);
-      convo.latestMessageText = message.text;
-      return convo;
+      const convoCopy = { ...convo };
+      convoCopy.id = message.conversationId;
+      convoCopy.messages.push(message);
+      convoCopy.latestMessageText = message.text;
+      return convoCopy;
     } else {
       return convo;
     }
