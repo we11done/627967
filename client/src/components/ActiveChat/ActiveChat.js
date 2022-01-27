@@ -2,8 +2,7 @@ import React from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import { Box } from '@material-ui/core';
 import { Input, Header, Messages } from './index';
-import { connect, useDispatch } from 'react-redux';
-import { fetchConversations } from '../../store/utils/thunkCreators';
+import { connect } from 'react-redux';
 
 const useStyles = makeStyles(() => ({
   root: {
@@ -26,15 +25,6 @@ const ActiveChat = props => {
   const { user } = props;
   const conversation = props.conversation || {};
 
-  /**
-   * Editor: Jaehyun Jun
-   * use useDispatch to fetch the new conversation on submit of Input child componenet
-   */
-  const dispatch = useDispatch();
-
-  // redux hook to update current component on change of child component
-  const onChange = () => dispatch(fetchConversations());
-
   return (
     <Box className={classes.root}>
       {conversation.otherUser && (
@@ -52,7 +42,6 @@ const ActiveChat = props => {
             <Input
               otherUser={conversation.otherUser}
               conversationId={conversation.id}
-              onChange={onChange}
               user={user}
             />
           </Box>
