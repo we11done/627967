@@ -12,11 +12,6 @@ router.get('/', async (req, res, next) => {
     }
     const userId = req.user.id;
 
-    // Editor: Jaehyun jun
-    // Order by updatedAt for conversations in descending order
-    // to display the most current person the user talked to.
-    // Order by createdAt for messages in ascending order
-    // to diplay the most current message in the bottom
     const conversations = await Conversation.findAll({
       where: {
         [Op.or]: {
@@ -75,7 +70,9 @@ router.get('/', async (req, res, next) => {
       } else {
         convoJSON.otherUser.online = false;
       }
-
+      convoJSON.unReadmessageCount = convoJSON.messages.filter(
+        message => !message.isRead && message.senderId !== userId
+      ).length;
       // set properties for notification count and latest message preview
       convoJSON.latestMessageText =
         convoJSON.messages[convoJSON.messages.length - 1].text;
@@ -83,6 +80,39 @@ router.get('/', async (req, res, next) => {
     }
 
     res.json(conversations);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch('/read-update/:conversationId', async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.sendStatus(401);
+    }
+    const { conversationId } = req.params;
+
+    let targetConvo = await Conversation.findOne({
+      where: {
+        id: conversationId,
+      },
+      attributes: ['id', 'updatedAt'],
+      order: [
+        ['updatedAt', 'DESC'],
+        [Message, 'createdAt', 'ASC'],
+      ],
+      include: [{ model: Message }],
+    });
+
+    const convo = targetConvo;
+    const convoJSON = convo.toJSON();
+    // update isRead field for each message
+    for (let j = 0; j < convoJSON.messages.length; j++) {
+      const message = convoJSON.messages[j];
+      const messageDB = await Message.findOne({ where: { id: message.id } });
+      await messageDB.update({ isRead: true });
+    }
+    return res.sendStatus(200);
   } catch (error) {
     next(error);
   }
