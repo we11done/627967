@@ -15,9 +15,6 @@ router.post('/', async (req, res, next) => {
     if (conversationId) {
       const message = await Message.create({ senderId, text, conversationId });
 
-      // Editor: Jaehyun Jun
-      // Update updatedAt column manually
-      // since adding message to the conversation does not update updatedAt field
       const convo = await Conversation.findOne({
         where: { id: conversationId },
       });
