@@ -81,14 +81,27 @@ export const fetchConversations = () => async dispatch => {
 
 export const readConversations = conversationId => async dispatch => {
   try {
-    const { status } = await axios.patch(
-      `/api/conversations/read-update/${conversationId}`
+    const { updatedMessages, updatedMessagesCount } = await updateToRead(
+      conversationId
     );
-    const { data } = await axios.get('/api/conversations');
-    status === 200 && dispatch(updateConversations(data));
+    dispatch(
+      updateConversations(conversationId, updatedMessages, updatedMessagesCount)
+    );
+    socket.emit('user-read', {
+      conversationId,
+      updatedMessages,
+      updatedMessagesCount,
+    });
   } catch (error) {
     console.error(error);
   }
+};
+
+const updateToRead = async conversationId => {
+  const { data } = await axios.patch(
+    `/api/conversations/read-update/${conversationId}`
+  );
+  return data;
 };
 
 const saveMessage = async body => {
@@ -109,7 +122,6 @@ const sendMessage = (data, body) => {
 export const postMessage = body => async dispatch => {
   try {
     const data = await saveMessage(body);
-
     if (!body.conversationId) {
       dispatch(addConversation(body.recipientId, data.message));
     } else {
