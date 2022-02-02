@@ -80,3 +80,26 @@ export const addNewConvoToStore = (state, recipientId, message) => {
     }
   });
 };
+
+export const updateConvoToStore = (state, payload) => {
+  const { conversationId, updatedMessages, updatedMessagesCount } = payload;
+
+  let newState = [...state];
+  if (updatedMessages) {
+    let convoIndex = state.findIndex(convo => convo.id === conversationId);
+    newState[convoIndex].messages.map(message => {
+      for (let updatedMessage of updatedMessages) {
+        if (updatedMessage.id === message.id) {
+          message.isRead = true;
+          break;
+        }
+      }
+      return message;
+    });
+
+    let prevUnreadCount = newState[convoIndex].unreadMessageCount;
+    newState[convoIndex].unreadMessageCount =
+      prevUnreadCount - updatedMessagesCount;
+  }
+  return newState;
+};
