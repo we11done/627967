@@ -70,7 +70,7 @@ router.get('/', async (req, res, next) => {
       } else {
         convoJSON.otherUser.online = false;
       }
-      convoJSON.unReadmessageCount = convoJSON.messages.filter(
+      convoJSON.unreadMessageCount = convoJSON.messages.filter(
         message => !message.isRead && message.senderId !== userId
       ).length;
       // set properties for notification count and latest message preview
@@ -90,7 +90,9 @@ router.patch('/read-update/:conversationId', async (req, res, next) => {
     if (!req.user) {
       return res.sendStatus(401);
     }
+
     const { conversationId } = req.params;
+    const userId = req.user.id;
 
     let targetConvo = await Conversation.findOne({
       where: {
@@ -101,18 +103,24 @@ router.patch('/read-update/:conversationId', async (req, res, next) => {
         ['updatedAt', 'DESC'],
         [Message, 'createdAt', 'ASC'],
       ],
-      include: [{ model: Message }],
+      include: [{ model: Message, where: { senderId: userId } }],
     });
 
-    const convo = targetConvo;
-    const convoJSON = convo.toJSON();
-    // update isRead field for each message
-    for (let j = 0; j < convoJSON.messages.length; j++) {
-      const message = convoJSON.messages[j];
-      const messageDB = await Message.findOne({ where: { id: message.id } });
-      await messageDB.update({ isRead: true });
+    if (!targetConvo) {
+      return res
+        .status(403)
+        .send({ status: 403, message: 'The user is not in the conversation' });
     }
-    return res.sendStatus(200);
+
+    const [updatedMessagesCount, updatedMessages] = await Message.update(
+      { isRead: true },
+      {
+        where: { conversationId, senderId: { [Op.ne]: userId }, isRead: false },
+        returning: true,
+      }
+    );
+
+    res.json({ updatedMessages, updatedMessagesCount });
   } catch (error) {
     next(error);
   }
