@@ -12,11 +12,6 @@ router.get('/', async (req, res, next) => {
     }
     const userId = req.user.id;
 
-    // Editor: Jaehyun jun
-    // Order by updatedAt for conversations in descending order
-    // to display the most current person the user talked to.
-    // Order by createdAt for messages in ascending order
-    // to diplay the most current message in the bottom
     const conversations = await Conversation.findAll({
       where: {
         [Op.or]: {
@@ -77,12 +72,73 @@ router.get('/', async (req, res, next) => {
       }
 
       // set properties for notification count and latest message preview
+      convoJSON.unreadMessageCount = await Message.count({
+        where: {
+          conversationId: { [Op.eq]: convoJSON.id },
+          senderId: { [Op.ne]: userId },
+          isRead: { [Op.eq]: false },
+        },
+      });
+
       convoJSON.latestMessageText =
         convoJSON.messages[convoJSON.messages.length - 1].text;
+
+      convoJSON.lastReadMessage = await Message.findOne({
+        limit: 1,
+        where: {
+          conversationId: { [Op.eq]: convoJSON.id },
+          senderId: { [Op.eq]: userId },
+          isRead: { [Op.eq]: true },
+        },
+        order: [['createdAt', 'DESC']],
+      });
+
       conversations[i] = convoJSON;
     }
 
     res.json(conversations);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch('/read-status/:conversationId', async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.sendStatus(401);
+    }
+
+    const { conversationId } = req.params;
+    const userId = req.user.id;
+
+    const targetConvo = await Conversation.findOne({
+      where: {
+        id: conversationId,
+      },
+      attributes: ['id', 'updatedAt'],
+      order: [
+        ['updatedAt', 'DESC'],
+        [Message, 'createdAt', 'ASC'],
+      ],
+      include: [{ model: Message, where: { senderId: userId } }],
+    });
+
+    if (!targetConvo) {
+      return res
+        .status(403)
+        .send({ status: 403, message: 'The user is not in the conversation' });
+    }
+
+    const [updatedMessagesCount, updatedMessages] = await Message.update(
+      { isRead: true },
+      {
+        where: { conversationId, senderId: { [Op.ne]: userId }, isRead: false },
+        order: [['updatedAt', 'DESC']],
+        returning: true,
+      }
+    );
+
+    res.json({ updatedMessages, updatedMessagesCount });
   } catch (error) {
     next(error);
   }
