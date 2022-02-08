@@ -28,20 +28,26 @@ export const gotConversations = conversations => {
 };
 
 export const updateConversations = (
+  readUserId,
   conversationId,
   updatedMessages,
   updatedMessagesCount
 ) => {
   return {
     type: UPDATE_CONVERSATIONS,
-    payload: { conversationId, updatedMessages, updatedMessagesCount },
+    payload: {
+      readUserId,
+      conversationId,
+      updatedMessages,
+      updatedMessagesCount,
+    },
   };
 };
 
-export const setNewMessage = (message, sender) => {
+export const setNewMessage = (message, sender, recipientId) => {
   return {
     type: SET_MESSAGE,
-    payload: { message, sender: sender || null },
+    payload: { message, sender: sender || null, recipientId },
   };
 };
 
