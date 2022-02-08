@@ -1,5 +1,5 @@
 export const addMessageToStore = (state, payload) => {
-  const { message, sender } = payload;
+  const { message, sender, recipientId } = payload;
   // if sender isn't null, that means the message needs to be put in a brand new convo
   if (sender !== null) {
     const newConvo = {
@@ -8,6 +8,7 @@ export const addMessageToStore = (state, payload) => {
       messages: [message],
     };
     newConvo.latestMessageText = message.text;
+    newConvo.unreadMessageCount = 1;
     return [newConvo, ...state];
   }
 
@@ -16,6 +17,11 @@ export const addMessageToStore = (state, payload) => {
       const convoCopy = { ...convo };
       convoCopy.messages.push(message);
       convoCopy.latestMessageText = message.text;
+      if (recipientId) {
+        convoCopy.unreadMessageCount = convoCopy.messages.filter(
+          message => message.senderId !== recipientId && !message.isRead
+        ).length;
+      }
       return convoCopy;
     } else {
       return convo;
@@ -82,24 +88,24 @@ export const addNewConvoToStore = (state, recipientId, message) => {
 };
 
 export const updateConvoToStore = (state, payload) => {
-  const { conversationId, updatedMessages, updatedMessagesCount } = payload;
-
-  let newState = [...state];
-  if (updatedMessages) {
-    let convoIndex = state.findIndex(convo => convo.id === conversationId);
-    newState[convoIndex].messages.map(message => {
-      for (let updatedMessage of updatedMessages) {
-        if (updatedMessage.id === message.id) {
-          message.isRead = true;
-          break;
-        }
+  const { readUserId, conversationId, updatedMessages, updatedMessagesCount } =
+    payload;
+  return state.map(convo => {
+    if (convo.id === conversationId && updatedMessagesCount > 0) {
+      const convoCopy = { ...convo };
+      for (let updateMessage of updatedMessages) {
+        const searchIndex = convoCopy.messages.findIndex(
+          message => message.id === updateMessage.id
+        );
+        convoCopy.messages[searchIndex] = updateMessage;
       }
-      return message;
-    });
-
-    let prevUnreadCount = newState[convoIndex].unreadMessageCount;
-    newState[convoIndex].unreadMessageCount =
-      prevUnreadCount - updatedMessagesCount;
-  }
-  return newState;
+      convoCopy.lastReadMessage = updatedMessages[updatedMessages.length - 1];
+      convoCopy.unreadMessageCount = convoCopy.messages.filter(
+        message => message.senderId !== readUserId && !message.isRead
+      ).length;
+      return convoCopy;
+    } else {
+      return convo;
+    }
+  });
 };
