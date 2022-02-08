@@ -70,12 +70,29 @@ router.get('/', async (req, res, next) => {
       } else {
         convoJSON.otherUser.online = false;
       }
-      convoJSON.unreadMessageCount = convoJSON.messages.filter(
-        message => !message.isRead && message.senderId !== userId
-      ).length;
+
       // set properties for notification count and latest message preview
+      convoJSON.unreadMessageCount = await Message.count({
+        where: {
+          conversationId: { [Op.eq]: convoJSON.id },
+          senderId: { [Op.ne]: userId },
+          isRead: { [Op.eq]: false },
+        },
+      });
+
       convoJSON.latestMessageText =
         convoJSON.messages[convoJSON.messages.length - 1].text;
+
+      convoJSON.lastReadMessage = await Message.findOne({
+        limit: 1,
+        where: {
+          conversationId: { [Op.eq]: convoJSON.id },
+          senderId: { [Op.eq]: userId },
+          isRead: { [Op.eq]: true },
+        },
+        order: [['createdAt', 'DESC']],
+      });
+
       conversations[i] = convoJSON;
     }
 
@@ -85,7 +102,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.patch('/read-update/:conversationId', async (req, res, next) => {
+router.patch('/read-status/:conversationId', async (req, res, next) => {
   try {
     if (!req.user) {
       return res.sendStatus(401);
@@ -94,7 +111,7 @@ router.patch('/read-update/:conversationId', async (req, res, next) => {
     const { conversationId } = req.params;
     const userId = req.user.id;
 
-    let targetConvo = await Conversation.findOne({
+    const targetConvo = await Conversation.findOne({
       where: {
         id: conversationId,
       },
@@ -116,6 +133,7 @@ router.patch('/read-update/:conversationId', async (req, res, next) => {
       { isRead: true },
       {
         where: { conversationId, senderId: { [Op.ne]: userId }, isRead: false },
+        order: [['updatedAt', 'DESC']],
         returning: true,
       }
     );
