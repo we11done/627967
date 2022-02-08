@@ -79,16 +79,22 @@ export const fetchConversations = () => async dispatch => {
   }
 };
 
-export const readConversations = conversationId => async dispatch => {
+export const readConversations = body => async dispatch => {
   try {
     const { updatedMessages, updatedMessagesCount } = await updateToRead(
-      conversationId
+      body.conversationId
     );
     dispatch(
-      updateConversations(conversationId, updatedMessages, updatedMessagesCount)
+      updateConversations(
+        body.readUserId,
+        body.conversationId,
+        updatedMessages,
+        updatedMessagesCount
+      )
     );
     socket.emit('user-read', {
-      conversationId,
+      readUserId: body.readUserId,
+      conversationId: body.conversationId,
       updatedMessages,
       updatedMessagesCount,
     });
@@ -99,7 +105,7 @@ export const readConversations = conversationId => async dispatch => {
 
 const updateToRead = async conversationId => {
   const { data } = await axios.patch(
-    `/api/conversations/read-update/${conversationId}`
+    `/api/conversations/read-status/${conversationId}`
   );
   return data;
 };
