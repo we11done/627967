@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import { Box } from '@material-ui/core';
 import { Input, Header, Messages } from './index';
 import { connect } from 'react-redux';
+import { readConversations } from '../../store/utils/thunkCreators';
 
 const useStyles = makeStyles(() => ({
   root: {
@@ -22,8 +23,21 @@ const useStyles = makeStyles(() => ({
 
 const ActiveChat = props => {
   const classes = useStyles();
-  const { user } = props;
-  const conversation = props.conversation || {};
+  const { user, readConversations } = props;
+  const conversation = useMemo(
+    () => props.conversation || {},
+    [props.conversation]
+  );
+
+  useEffect(() => {
+    if (user.id && conversation.id) {
+      const reqBody = {
+        conversationId: conversation.id,
+        readUserId: user.id,
+      };
+      readConversations(reqBody);
+    }
+  }, [conversation, readConversations, user]);
 
   return (
     <Box className={classes.root}>
@@ -36,6 +50,7 @@ const ActiveChat = props => {
           <Box className={classes.chatContainer}>
             <Messages
               messages={conversation.messages}
+              lastReadMessage={conversation.lastReadMessage}
               otherUser={conversation.otherUser}
               userId={user.id}
             />
@@ -63,4 +78,12 @@ const mapStateToProps = state => {
   };
 };
 
-export default connect(mapStateToProps, null)(ActiveChat);
+const mapDispatchToProps = dispatch => {
+  return {
+    readConversations: async body => {
+      await dispatch(readConversations(body));
+    },
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(ActiveChat);
