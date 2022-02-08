@@ -21,14 +21,15 @@ socket.on('connect', () => {
   });
 
   socket.on('new-message', data => {
-    store.dispatch(setNewMessage(data.message, data.sender));
+    store.dispatch(setNewMessage(data.message, data.sender, data.recipientId));
   });
 
   socket.on('other-user-read', data => {
     store.dispatch(
       updateConversations(
+        data.readUserId,
         data.conversationId,
-        data.updatedMessage,
+        data.updatedMessages,
         data.updatedMessagesCount
       )
     );
