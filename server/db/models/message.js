@@ -1,28 +1,20 @@
 const Sequelize = require('sequelize');
 const db = require('../db');
 
-const Message = db.define(
-  'message',
-  {
-    text: {
-      type: Sequelize.STRING,
-      allowNull: false,
-    },
-    senderId: {
-      type: Sequelize.INTEGER,
-      allowNull: false,
-    },
-    readUsers: {
-      type: Sequelize.ARRAY(Sequelize.INTEGER),
-    },
+const Message = db.define('message', {
+  text: {
+    type: Sequelize.STRING,
+    allowNull: false,
   },
-  {
-    hooks: {
-      beforeCreate: (record, options) => {
-        record.dataValues.readUsers = [record.dataValues.senderId];
-      },
-    },
-  }
-);
+  senderId: {
+    type: Sequelize.INTEGER,
+    allowNull: false,
+  },
+  isRead: {
+    type: Sequelize.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+});
 
 module.exports = Message;
